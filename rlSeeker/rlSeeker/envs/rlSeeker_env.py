@@ -18,12 +18,12 @@ class RLSeeker(gym.Env):
 	}
 
 	def __init__(self,curr_loc = np.array([9,9]),
-				goal_loc = np.array([3.5,2.5]),
-				living_reward = -10,
+				goal_loc = np.array([-1,-1]),
 				goal_reward = 10,
 				xLim = np.array([-10,10]),
 				yLim = np.array([-10,10]),
-				discrete_step = 0.5):
+				discrete_step = 1,
+				living_reward = lambda X: -10):
 
 
 		self.xLim  = xLim
@@ -46,6 +46,8 @@ class RLSeeker(gym.Env):
 		self.observation_space = spaces.Discrete(2)
 		self.noise = 0.1
 		self.viewer = None
+
+
 
 
 
@@ -81,16 +83,18 @@ class RLSeeker(gym.Env):
 
 
 	def render(self, mode='human'):
+		outer_width = 800
+		outer_height = 800
 		screen_width = 600
-		screen_height = 400
+		screen_height = 600
 
-		world_width = (self.xLim[1] - self.xLim[0])*1.25
+		world_width = (self.xLim[1] - self.xLim[0])
 
 		scale = screen_width/world_width
 		agentRad = 1 * scale
 		if self.viewer is None:
 			from gym.envs.classic_control import rendering
-			self.viewer = rendering.Viewer(screen_width,screen_height)
+			self.viewer = rendering.Viewer(outer_width,outer_height)
 			agent = rendering.make_circle(radius = agentRad, res = 30)
 			self.agenttrans = rendering.Transform()
 			agent.add_attr(self.agenttrans)
