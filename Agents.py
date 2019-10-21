@@ -1,6 +1,6 @@
 from collections import deque
 
-class RLAgent():
+class DiscreteRLAgent():
 	def __init__(discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 0.999,env):
 		self.discount_factor = discount_factor
 		self.event_memory = event_memory
@@ -21,8 +21,10 @@ class RLAgent():
 		pass
 
 
-class DQNAgent(RLAgent):
-	def __init__(discount_factor,event_memory = ,epsilon,learning_rate,exploration_decay,env):
+class QLearning(DiscreteRLAgent):
+	def __init__(discount_factor,event_memory = dict(),epsilon,learning_rate,exploration_decay,env):
+		for a in range(env.action_space.n):
+			event_memory[a] = np.zeros(env.observation_space.n)
 		super(discount_factor,event_memory,epsilon,learning_rate,exploration_decay,env)
 
 
