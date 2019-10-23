@@ -1,13 +1,19 @@
 from collections import deque
+import numpy as np
+import time
+
 
 class DiscreteRLAgent():
-	def __init__(discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 0.999,env):
+	def __init__(self,env,discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 0.999,mem_size = 1E3, max_eps = 1000):
 		self.discount_factor = discount_factor
 		self.event_memory = event_memory
 		self.epsilon = epsilon
 		self.learning_rate = learning_rate
 		self.exploration_decay = exploration_decay
+		self.max_memory = mem_size
+		self.max_eps = max_eps
 		self.env = env
+		self.model = self.create_agent()
 
 
 
@@ -20,12 +26,93 @@ class DiscreteRLAgent():
 	def create_agent():
 		pass
 
+	def choose_action(state):
+		pass
 
-class QLearning(DiscreteRLAgent):
-	def __init__(discount_factor,event_memory = dict(),epsilon,learning_rate,exploration_decay,env):
-		for a in range(env.action_space.n):
-			event_memory[a] = np.zeros(env.observation_space.n)
-		super(discount_factor,event_memory,epsilon,learning_rate,exploration_decay,env)
+	def train():
+		pass
+
+	def testPolicy():
+		pass
+
+
+class QLearningAgent(DiscreteRLAgent):
+	def __init__(self,env,discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 0.999,mem_size = 1E3, max_eps = 1000):
+		self.discount_factor = discount_factor
+		self.event_memory = event_memory
+		self.epsilon = epsilon
+		self.learning_rate = learning_rate
+		self.exploration_decay = exploration_decay
+		self.max_memory = mem_size
+		self.max_eps = max_eps
+		self.env = env
+		self.create_agent()
+
+
+	def update(self,curr_state,next_state,reward,action,done):
+		if done:
+			return
+		else:
+			next_action = self.choose_action(next_state)
+			cs = tuple(curr_state)
+			ns = tuple(next_state)
+			print("+++++++++++++++++++++++++++++++++++++++++++++++++")
+			print(reward )
+			self.Q[cs][action] = (1 - self.learning_rate)*(self.Q[cs][action]) + self.learning_rate*(reward + self.discount_factor*self.Q[ns][next_action])
+
+	def add_to_memory(self,curr_state,next_state,reward,action,done):
+		if len(self.event_memory) >= self.max_memory:
+			self.event_memory.popleft()
+		self.event_memory.append((curr_state,next_state,reward,action,done))
+
+	def create_agent(self):
+		self.Q = dict()
+		for s1 in range(self.env.xLim[0],self.env.xLim[1] + 1):
+			for s2 in range(self.env.yLim[0],self.env.yLim[1] + 1):
+				self.Q[(s1,s2)] = np.random.rand(self.env.action_space.n)
+
+	def choose_action(self,state):
+		s = tuple(state)
+		options = self.Q[s]
+		if np.random.uniform > self.epsilon:
+			return np.argmax(options)
+		else:
+			self.epsilon *= self.exploration_decay
+			return np.random.choice(np.array(range(self.env.action_space.n)))
+
+
+
+	def train(self):
+
+		for _ in range(self.max_eps):
+			observation = self.env.reset()
+			while(not self.env.atGoal()):
+				self.env.render()
+				action = self.choose_action(observation) # your agent here (this takes random actions)
+				oldState = self.env.curr_loc
+				observation, reward, done, info = self.env.step(action)
+				self.add_to_memory(oldState,observation,reward,action,done)
+				self.update(oldState,observation,reward,action,done)
+				print action, observation, self.env.goal_loc, done, info
+				if done:
+					observation = env.reset()
+				time.sleep(0.01)
+
+	def testPolicy(self):
+		for _ in range(self.max_eps):
+			observation = self.env.reset()
+			while(not self.env.atGoal()):
+				self.env.render()
+				action = self.choose_action(observation) # your agent here (this takes random actions)
+				oldState = self.env.curr_loc
+				observation, reward, done, info = self.env.step(action)
+				add_to_memory()
+				self.update(oldState,observation,reward,action,done)
+				print action, observation, env.goal_loc, done, info
+				if done:
+					observation = env.reset()
+				time.sleep(0.01)
+
 
 
 

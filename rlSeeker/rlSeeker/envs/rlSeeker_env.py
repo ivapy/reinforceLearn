@@ -22,15 +22,13 @@ class RLSeeker(gym.Env):
 				goal_reward = 10,
 				xLim = np.array([-10,10]),
 				yLim = np.array([-10,10]),
-				discrete_step = 1,
-				living_reward = lambda X: -10):
+				discrete_step = 1):
 
 
 		self.xLim  = xLim
 		self.yLim = yLim
 
 		self.goal_reward = goal_reward
-		self.living_reward = living_reward
 		self.goal_loc = goal_loc
 		self.curr_loc = curr_loc
 		self.discrete_step = discrete_step
@@ -65,12 +63,14 @@ class RLSeeker(gym.Env):
 			self.curr_loc = self.curr_loc + self.action_list['West']
 		self.__checkBounds()
 		reward = 0;
-		if self.__atGoal():
-			reward = self.goal_reward
+		if self.atGoal():
+			reward = 10
 		else:
-			reward = self.living_reward
+			r = self.curr_loc - self.goal_loc
+			r = np.power(r,2)
+			reward = -np.sum(r)
 
-		return self.curr_loc, reward, self.__atGoal(), {}
+		return self.curr_loc, reward, self.atGoal(), {}
 
 
 	def reset(self):
@@ -149,7 +149,7 @@ class RLSeeker(gym.Env):
 		elif yBoundLower:
 			self.curr_loc[1] = self.yLim[0]
 
-	def __atGoal(self):
+	def atGoal(self):
 		return min(self.curr_loc == self.goal_loc)
 
 

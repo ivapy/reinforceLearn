@@ -8,6 +8,8 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 import time
+import Agents
+from Agents import QLearningAgent
 
 
 ENV_NAME = "rlSeeker-v0"
@@ -45,16 +47,14 @@ MAX_EPS = 1000
 
 
 def main():
-	env = gym.make("rlSeeker-v0")
-	observation = env.reset()
-	for _ in range(MAX_EPS):
-		env.render()
-		action = env.action_space.sample() # your agent here (this takes random actions)
-		observation, reward, done, info = env.step(action)
-		print action, observation, env.goal_loc, done, info
-		if done:
-			observation = env.reset()
-		time.sleep(1)
+
+	environment = gym.make("rlSeeker-v0")
+	agent = QLearningAgent(env = environment)
+	agent.train()
+
+
+
+
 	env.close()
 
 if __name__ == "__main__":
