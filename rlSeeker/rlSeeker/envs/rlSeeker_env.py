@@ -18,19 +18,17 @@ class RLSeeker(gym.Env):
 	}
 
 	def __init__(self,curr_loc = np.array([9,9]),
-				goal_loc = np.array([3.5,2.5]),
-				living_reward = -10,
+				goal_loc = np.array([-1,-1]),
 				goal_reward = 10,
 				xLim = np.array([-10,10]),
 				yLim = np.array([-10,10]),
-				discrete_step = 0.5):
+				discrete_step = 1):
 
 
 		self.xLim  = xLim
 		self.yLim = yLim
 
 		self.goal_reward = goal_reward
-		self.living_reward = living_reward
 		self.goal_loc = goal_loc
 		self.curr_loc = curr_loc
 		self.discrete_step = discrete_step
@@ -49,6 +47,8 @@ class RLSeeker(gym.Env):
 
 
 
+
+
 	def step(self, action):
 		if action not in self.action_space:
 			raise ValueError('Invalid action')
@@ -63,12 +63,14 @@ class RLSeeker(gym.Env):
 			self.curr_loc = self.curr_loc + self.action_list['West']
 		self.__checkBounds()
 		reward = 0;
-		if self.__atGoal():
-			reward = self.goal_reward
+		if self.atGoal():
+			reward = 10
 		else:
-			reward = self.living_reward
+			r = self.curr_loc - self.goal_loc
+			r = np.power(r,2)
+			reward = -np.sum(r)
 
-		return self.curr_loc, reward, self.__atGoal(), {}
+		return self.curr_loc, reward, self.atGoal(), {}
 
 
 	def reset(self):
@@ -81,16 +83,18 @@ class RLSeeker(gym.Env):
 
 
 	def render(self, mode='human'):
+		outer_width = 800
+		outer_height = 800
 		screen_width = 600
-		screen_height = 400
+		screen_height = 600
 
-		world_width = (self.xLim[1] - self.xLim[0])*1.25
+		world_width = (self.xLim[1] - self.xLim[0])
 
 		scale = screen_width/world_width
 		agentRad = 1 * scale
 		if self.viewer is None:
 			from gym.envs.classic_control import rendering
-			self.viewer = rendering.Viewer(screen_width,screen_height)
+			self.viewer = rendering.Viewer(outer_width,outer_height)
 			agent = rendering.make_circle(radius = agentRad, res = 30)
 			self.agenttrans = rendering.Transform()
 			agent.add_attr(self.agenttrans)
@@ -145,7 +149,7 @@ class RLSeeker(gym.Env):
 		elif yBoundLower:
 			self.curr_loc[1] = self.yLim[0]
 
-	def __atGoal(self):
+	def atGoal(self):
 		return min(self.curr_loc == self.goal_loc)
 
 
