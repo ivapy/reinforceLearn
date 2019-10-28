@@ -22,7 +22,7 @@ class continuousRLSeeker(gym.Env):
 				goal_thresh = 0.1,
 				xLim = np.array([-10,10]),
 				yLim = np.array([-10,10]),
-				discrete_step = 1E-3,
+				discrete_step = 1E-1,
 				minVel = -5,
 				maxVel = 5,
 				minAngle = -math.pi,
