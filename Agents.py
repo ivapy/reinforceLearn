@@ -83,17 +83,22 @@ class QLearningAgent(DiscreteRLAgent):
 	def train(self):
 		for i in range(self.max_eps):
 			observation = self.env.reset()
+			numIters = 0
 			while(not self.env.atGoal()):
+
 				#self.env.render()
 				action = self.choose_action(observation) # your agent here (this takes random actions)
 				oldState = self.env.curr_loc
 				observation, reward, done, info = self.env.step(action)
 				self.add_to_memory(oldState,observation,reward,action,done)
 				self.update(oldState,observation,reward,action,done)
-
+				numIters += 1
 				if done:
+
 					print("iter: " + str(i))
-					print action, observation, self.env.goal_loc, done, info
+					print action, reward, observation, self.env.goal_loc, done, numIters
+					self.env.reset()
+					numIters = 0
 
 	def testPolicy(self):
 		for _ in range(self.max_eps):
