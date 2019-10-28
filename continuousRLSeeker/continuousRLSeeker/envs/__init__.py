@@ -1,1 +1,1 @@
-from continuousrlSeeker.envs.continousrlSeeker_env import continuousRLSeeker
+from continuousRLSeeker.envs.continuousRLSeeker_env import continuousRLSeeker

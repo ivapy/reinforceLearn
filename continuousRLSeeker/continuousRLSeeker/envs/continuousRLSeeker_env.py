@@ -23,7 +23,7 @@ class continuousRLSeeker(gym.Env):
 				xLim = np.array([-10,10]),
 				yLim = np.array([-10,10]),
 				discrete_step = 1E-3,
-				minVel = 0.01,
+				minVel = -5,
 				maxVel = 5,
 				minAngle = -math.pi,
 				maxAngle = math.pi,
@@ -33,8 +33,8 @@ class continuousRLSeeker(gym.Env):
 		self.yLim = yLim
 		self.discrete_step = discrete_step
 		self.goal = 10
-		self.action_space = spaces.Box(low = [minVel, minAngle],high = [maxVel, minAngle], shape = (2,))
-		self.observation_space = spaces.Box(low = [self.xLim[0], self.yLim[0]],high = [self.xLim[1], self.yLim[1]], shape = (2,))
+		self.action_space = spaces.Box(low = np.array([minVel, minAngle]),high = np.array([maxVel, maxAngle]), dtype=np.float32)
+		self.observation_space = spaces.Box(low = np.array([self.xLim[0], self.yLim[0]]),high = np.array([self.xLim[1], self.yLim[1]]), dtype=np.float32)
 		self.curr_loc = np.zeros(2)
 		self.goal_loc = np.zeros(2)
 		self.curr_loc[0] = (xLim[1] - xLim[0])*np.random.sample() + xLim[0]
@@ -62,10 +62,11 @@ class continuousRLSeeker(gym.Env):
 
 
 	def reset(self):
-		self.curr_loc[0] = np.random.choice(self.xStates,1)
-		self.curr_loc[1] = np.random.choice(self.yStates,1)
-		self.goal_loc[0] = np.random.choice(self.xStates,1)
-		self.goal_loc[1] = np.random.choice(self.yStates,1)
+		self.curr_loc[0] = (self.xLim[1] - self.xLim[0])*np.random.sample() + self.xLim[0]
+		self.curr_loc[1] = (self.yLim[1] - self.yLim[0])*np.random.sample() + self.yLim[0]
+
+		self.goal_loc[0] = (self.xLim[1] - self.xLim[0])*np.random.sample() + self.xLim[0]
+		self.goal_loc[1] = (self.yLim[1] - self.yLim[0])*np.random.sample() + self.yLim[0]
 		return self.curr_loc
 
 
