@@ -7,6 +7,7 @@ from keras import backend as K
 from keras.models import Model
 from keras.layers import Layer, Dense, Input
 from keras.optimizers import Adam
+from keras import initializers
 
 
 
@@ -194,21 +195,24 @@ class ActorCritic(ContinuousRLAgent):
 	def __create_actor(self):
 		state_input = Input(shape=self.env.observation_space.shape)
 		delta = Input(shape = [1])
-		h1 = Dense(24, activation='relu')(state_input)
-		h2 = Dense(48, activation='relu')(h1)
-		h3 = Dense(24, activation='relu')(h2)
-		output = Dense(self.env.action_space.shape[0], activation='softmax')(h3)
+		h1 = Dense(24, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(state_input)
+		h2 = Dense(48, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h1)
+		h3 = Dense(24, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h2)
+		output = Dense(self.env.action_space.shape[0], activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h3)
+		dist_params = Dense(2, activation='softmax', kernel_initializer='random_uniform', bias_initializer='zeros')(h3)
 
-		model = Model(input=[state_input, delta], output=output)
+		model = Model(input=[state_input, delta], output=dist_params)
 		adam  = Adam(lr=0.001)
 		model.compile(loss="mse", optimizer=adam)
 
 		policy = Model(input = [state_input], output = [output])
+		action_placeholder = tf.placeholder(tf.float32)
+		delta_placeholder = tf.placeholder(tf.float32)
+		self.loss_actor = -tf.log(norm_dist.prob(action_placeholder) + 1e-5) * delta_placeholder
+		self.training_op_actor = tf.train.AdamOptimizer(
+			lr_actor, name='actor_optimizer').minimize(self.loss_actor)
 		return model, policy
 
-
-	def __log_loss(y_true,y_pred):
-		pass
 
 
 	def __create_critic(self):
@@ -238,8 +242,16 @@ class ActorCritic(ContinuousRLAgent):
 				self.critic.fit([cur_state, action], reward, verbose=0)
 
 
-	def __train_actor(self):
+	def __train_actor(self, advantage, cur_state, next_state):
+
 		pass
+
+
+	def __log_loss(y_true,y_pred):
+		pass
+
+
+
 
 	def train(self):
 		pass
