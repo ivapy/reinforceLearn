@@ -1,6 +1,13 @@
 from collections import deque
 import numpy as np
 import time
+from tensorflow import keras
+import tensorflow as tf
+from keras import backend as K
+from keras.models import Model
+from keras.layers import Layer, Dense, Input
+from keras.optimizers import Adam
+
 
 
 class DiscreteRLAgent():
@@ -115,6 +122,140 @@ class QLearningAgent(DiscreteRLAgent):
 					observation = self.env.reset()
 				time.sleep(0.01)
 
+class LinQuadLayer(layers.Layer):
+	def __init__(self):
+		super(LinQuadLayer,self).__init__()
+		self.numOutputs = 1
+
+	def call(self,inputs):
+		if inputs.shape[0] < 1:
+			raise ValueError("Cannot have layer input size less than 1")
+		u,v = tf.meshgrid(inputs,inputs)
+		quadLayer = u * v;
+		r,c = quadLayer.shape
+		quadLayer = (u * v).numpy();
+		op = np.zeros([self.__triangle(inputs.shape[0])])
+		for i in range(r):
+			for j in range(i):
+				op[i * inputs.shape[0] + j] = quadLayer[i][j]
+
+		return tf.convert_to_tensor(op)
+
+	def __triangle(self,N):
+		return (N**2 + N)/2
+
+
+class ContinuousRLAgent():
+	def __init__(self,env,discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 0.999,mem_size = 1E3, max_eps = 1000):
+		self.discount_factor = discount_factor
+		self.event_memory = event_memory
+		self.epsilon = epsilon
+		self.learning_rate = learning_rate
+		self.exploration_decay = exploration_decay
+		self.max_memory = mem_size
+		self.max_eps = max_eps
+		self.env = env
+		self.model = self.create_agent()
+
+
+
+	def update(curr_state,next_state,reward,action,done):
+		pass
+
+	def add_to_memory(curr_state,next_state,reward,action,done):
+		pass
+
+	def create_agent():
+		pass
+
+	def choose_action(state):
+		pass
+
+	def train():
+		pass
+
+	def testPolicy():
+		pass
+
+
+class ActorCritic(ContinuousRLAgent):
+
+	def __init__(self,env,discount_factor = 0.99,event_memory = deque(),mem_size = 2E3, max_eps = 1000,batch_size = 50):
+		self.max_eps = max_eps
+		self.event_memory = event_memory
+		self.discount_factor = discount_factor
+		self.mem_size = mem_size
+		self.batch_size = batch_size
+		self.critic = self.__create_critic()
+		self.actor = self.__create_actor()
+		self.alpha = 0.0001
+		self.beta = 0.0005
+
+	def __create_actor(self):
+		state_input = Input(shape=self.env.observation_space.shape)
+		delta = Input(shape = [1])
+		h1 = Dense(24, activation='relu')(state_input)
+		h2 = Dense(48, activation='relu')(h1)
+		h3 = Dense(24, activation='relu')(h2)
+		output = Dense(self.env.action_space.shape[0], activation='softmax')(h3)
+
+		model = Model(input=[state_input, delta], output=output)
+		adam  = Adam(lr=0.001)
+		model.compile(loss="mse", optimizer=adam)
+
+		policy = Model(input = [state_input], output = [output])
+		return model, policy
+
+
+	def __log_loss(y_true,y_pred):
+		pass
+
+
+	def __create_critic(self):
+		state_input = Input(shape = (2,), name = 'State_In')
+		action_input = Input(shape = (2,), name = 'Action_In')
+
+		sa_concat = layers.concatenate([state_input,action_input])
+		quadLayer = LinQuadLayer()(sa_concat)
+		fc_linear = layers.Dense(1)(sa_concat)
+		fc_quad = layers.Dense(1)(quadLayer)
+		addLayer = layers.Add()([fc_linear, fc_quad])
+
+		reward_estimator = Model(inputs = [state_input, action_input], outputs = addLayer)
+		adam  = Adam(lr=0.001)
+		reward_estimator.compile(loss="mse", optimizer=adam)
+		return reward_estimator
+
+	def __train_critic(self):
+		samples = random.sample(self.event_memory, self.batch_size)
+		for sample in samples:
+			cur_state, action, reward, new_state, done = sample
+				if not done:
+					target_action = self.actor.predict(new_state)
+					future_reward = self.critic.predict([new_state target_action])
+
+					reward += self.discount_factor * future_reward - reward
+				self.critic.fit([cur_state, action], reward, verbose=0)
+
+
+	def __train_actor(self):
+		pass
+
+	def train(self):
+		pass
+
+	def update(self):
+		pass
+
+	def add_to_memory(self, state):
+		if len(self.event_memory) > self.mem_size:
+			self.event_memory.pop()
+			self.event_memory.appendleft(state)
+		else:
+			self.event_memory.appendleft(state)
+
+	def testPolicy(self):
+		pass
 
 
 
@@ -131,49 +272,5 @@ class QLearningAgent(DiscreteRLAgent):
 
 
 
-# GAMMA = 0.95
-# LEARNING_RATE = 0.001
 
-# MEMORY_SIZE = 1000000
-# BATCH_SIZE = 20
 
-# EXPLORATION_MAX = 1.0
-# EXPLORATION_MIN = 0.01
-# EXPLORATION_DECAY = 0.995
-
-# class rlSeekerDQN:
-
-# 	def __init__(self, observation_space, action_space):
-# 		self.exploration_rate = EXPLORATION_MAX
-
-# 		self.action_space = action_space
-# 		self.memory = deque(maxlen=MEMORY_SIZE)
-
-# 		self.model = Sequential()
-# 		self.model.add(Dense(24, input_shape=(observation_space,), activation="relu"))
-# 		self.model.add(Dense(24, activation="relu"))
-# 		self.model.add(Dense(self.action_space, activation="linear"))
-# 		self.model.compile(loss="mse", optimizer=Adam(lr=LEARNING_RATE))
-
-# 	def remember(self, state, action, reward, next_state, done):
-# 		self.memory.append((state, action, reward, next_state, done))
-
-# 	def act(self, state):
-# 		if np.random.rand() < self.exploration_rate:
-# 			return random.randrange(self.action_space)
-# 		q_values = self.model.predict(state)
-# 		return np.argmax(q_values[0])
-
-# 	def experience_replay(self):
-# 		if len(self.memory) < BATCH_SIZE:
-# 			return
-# 		batch = random.sample(self.memory, BATCH_SIZE)
-# 		for state, action, reward, state_next, terminal in batch:
-# 			q_update = reward
-# 			if not terminal:
-# 				q_update = (reward + GAMMA * np.amax(self.model.predict(state_next)[0]))
-# 			q_values = self.model.predict(state)
-# 			q_values[0][action] = q_update
-# 			self.model.fit(state, q_values, verbose=0)
-# 		self.exploration_rate *= EXPLORATION_DECAY
-# 		self.exploration_rate = max(EXPLORATION_MIN, self.exploration_rate)
