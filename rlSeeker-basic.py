@@ -10,6 +10,7 @@ from keras.optimizers import Adam
 import time
 import Agents
 from Agents import QLearningAgent
+import pickle
 
 
 ENV_NAME = "rlSeeker-v0"
@@ -51,11 +52,11 @@ def main():
 	environment = gym.make("rlSeeker-v0")
 	agent = QLearningAgent(env = environment)
 	agent.train()
-
-
-
-
-	env.close()
+	file = open('agent_trained','wb')
+	pickle.dump(agent,file)
+	file.close()
+	agent.testPolicy()
+	environment.close()
 
 if __name__ == "__main__":
 	main()
