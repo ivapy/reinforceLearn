@@ -311,16 +311,14 @@ class ActorCritic(ContinuousRLAgent):
 		h1 = Dense(24, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(state_input)
 		h2 = Dense(48, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h1)
 		h3 = Dense(24, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h2)
-		output = Dense(self.env.action_space.shape[0], activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h3)
-		dist_params = Dense(2, activation='softmax', kernel_initializer='random_uniform', bias_initializer='zeros')(h3)
+		vel_output = Dense(2, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h3)
+		ang_output = Dense(2, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h3)
+		dist_params = Dense(self.env.action_space.shape[0], activation='softmax', kernel_initializer='random_uniform', bias_initializer='zeros')(h3)
 
-		model = Model(input=[state_input, delta], output=dist_params)
-		adam  = Adam(lr=0.001)
-		model.compile(loss="mse", optimizer=adam)
-
-		policy = Model(input = [state_input], output = [output])
+		model = Model(input=[state_input, delta], output=[vel_output, ang_output])
 		action_placeholder = tf.placeholder(tf.float32)
 		delta_placeholder = tf.placeholder(tf.float32)
+		norm_dist = tf.placeholder(tfd.Normal(loc = 0,scale = 1))
 		self.loss_actor = -tf.log(norm_dist.prob(action_placeholder) + 1e-5) * delta_placeholder
 		self.training_op_actor = tf.train.AdamOptimizer(lr_actor, name='actor_optimizer').minimize(self.loss_actor)
 		return model, policy
@@ -355,20 +353,18 @@ class ActorCritic(ContinuousRLAgent):
 
 
 	def __train_actor(self, advantage, cur_state, next_state):
-
-
-
-
-	def __log_loss(y_true,y_pred):
 		pass
-
-
-
 
 	def train(self):
 		pass
-	def chooseAction():
-		pass
+	def chooseAction(self, state):
+		s = tuple(state)
+		op = self.actor.predict(state)
+		mu_vel =
+		tfp.distributions.Normal(loc = mu, scale = sigma)
+
+
+
 
 	def update(self):
 		pass
