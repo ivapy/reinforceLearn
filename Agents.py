@@ -12,7 +12,7 @@ import tensorflow_probability as tfp
 from tensorflow import keras
 from keras import backend as K
 from keras.models import Model
-from keras.layers import Layer, Dense, Input
+from keras.layers import Layer, Dense, Input, Concatenate, Flatten, Add
 from keras.optimizers import Adam
 from keras import initializers
 import random
@@ -313,15 +313,16 @@ class ActorCritic(ContinuousRLAgent):
 		h3 = Dense(24, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h2)
 		vel_output = Dense(2, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h3)
 		ang_output = Dense(2, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h3)
-		dist_params = Dense(self.env.action_space.shape[0], activation='softmax', kernel_initializer='random_uniform', bias_initializer='zeros')(h3)
+		op_concat = Concatenate()([vel_output, ang_output])
+		output = Flatten()(op_concat)
+		model = Model(input=[state_input, delta], output=output)
 
-		model = Model(input=[state_input, delta], output=[vel_output, ang_output])
 		action_placeholder = tf.placeholder(tf.float32)
 		delta_placeholder = tf.placeholder(tf.float32)
 		norm_dist = tf.placeholder(tfd.Normal(loc = 0,scale = 1))
 		self.loss_actor = -tf.log(norm_dist.prob(action_placeholder) + 1e-5) * delta_placeholder
 		self.training_op_actor = tf.train.AdamOptimizer(lr_actor, name='actor_optimizer').minimize(self.loss_actor)
-		return model, policy
+		return model
 
 
 
@@ -329,11 +330,11 @@ class ActorCritic(ContinuousRLAgent):
 		state_input = Input(shape = (2,), name = 'State_In')
 		action_input = Input(shape = (2,), name = 'Action_In')
 
-		sa_concat = layers.concatenate([state_input,action_input])
+		sa_concat = Concatenate([state_input,action_input])
 		quadLayer = LinQuadLayer()(sa_concat)
-		fc_linear = layers.Dense(1)(sa_concat)
-		fc_quad = layers.Dense(1)(quadLayer)
-		addLayer = layers.Add()([fc_linear, fc_quad])
+		fc_linear = Dense(1)(sa_concat)
+		fc_quad = Dense(1)(quadLayer)
+		addLayer = Add()([fc_linear, fc_quad])
 
 		reward_estimator = Model(inputs = [state_input, action_input], outputs = addLayer)
 		adam  = Adam(lr=0.001)
@@ -360,8 +361,17 @@ class ActorCritic(ContinuousRLAgent):
 	def chooseAction(self, state):
 		s = tuple(state)
 		op = self.actor.predict(state)
-		mu_vel =
-		tfp.distributions.Normal(loc = mu, scale = sigma)
+		op = np.array(op)
+		mu_vel = op[0]
+		sigma_vel = op[1]
+		mu_ang = op[2]
+		sigma_ang = op[3]
+		vel_dist = tfp.distributions.Normal(loc = mu_vel, scale = sigma_vel)
+		ang_dist = tfp.distributions.Normal(loc = mu_ang, scale = sigma_ang)
+		op_vel = tf.clip_by_value(vel_dist.sample(),self.env.action_space.low[0],self.env.action_space.high[0])
+		op_ang = tf.clip_by_value(ang_dist.sample(),self.env.action_space.low[1],self.env.action_space.high[1])
+		return op_vel, op_ang
+
 
 
 
