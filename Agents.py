@@ -17,47 +17,7 @@ from keras.optimizers import Adam
 from keras import initializers
 import random
 
-"""
-Acting as an abstract class template for the minimum functionality needed in the implementation of a Discrete RL agent
-"""
-
-class DiscreteRLAgent():
-	def __init__(self,env,discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 0.999,mem_size = 1E3, max_eps = 1000):
-		self.discount_factor = discount_factor
-		self.event_memory = event_memory
-		self.epsilon = epsilon
-		self.learning_rate = learning_rate
-		self.exploration_decay = exploration_decay
-		self.max_memory = mem_size
-		self.max_eps = max_eps
-		self.env = env
-		self.model = self.create_agent()
-
-
-
-	def update(curr_state,next_state,reward,action,done):
-		pass
-
-	def add_to_memory(curr_state,next_state,reward,action,done):
-		pass
-
-	def create_agent():
-		pass
-
-	def choose_action(state):
-		pass
-
-	def train():
-		pass
-
-	def testPolicy():
-		pass
-
-"""
-This class implements the DiscreteRLAgent Template from above as a Q-table based Q learning agent
-"""
-
-class QLearningAgent(DiscreteRLAgent):
+class QLearningAgent():
 	def __init__(self,env,discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 1,mem_size = 1E3, max_eps = int(1E3)):
 		self.discount_factor = discount_factor
 		self.event_memory = event_memory
@@ -135,11 +95,9 @@ class QLearningAgent(DiscreteRLAgent):
 				if done:
 					observation = self.env.reset()
 				time.sleep(0.01)
-"""
-This class implements the Discrete RL agent as a deep Q-learning agent
-"""
 
-class DeepQAgent(DiscreteRLAgent):
+
+class DeepQAgent():
 		def __init__(self,env,discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 1,mem_size = 1E3, max_eps = int(1E3)):
 		self.discount_factor = discount_factor
 		self.event_memory = event_memory
@@ -258,40 +216,7 @@ class LinQuadLayer(layers.Layer):
 		return (N**2 + N)/2
 
 
-class ContinuousRLAgent():
-	def __init__(self,env,discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 0.999,mem_size = 1E3, max_eps = 1000):
-		self.discount_factor = discount_factor
-		self.event_memory = event_memory
-		self.epsilon = epsilon
-		self.learning_rate = learning_rate
-		self.exploration_decay = exploration_decay
-		self.max_memory = mem_size
-		self.max_eps = max_eps
-		self.env = env
-		self.model = self.create_agent()
-
-
-
-	def update(curr_state,next_state,reward,action,done):
-		pass
-
-	def add_to_memory(curr_state,next_state,reward,action,done):
-		pass
-
-	def create_agent():
-		pass
-
-	def choose_action(state):
-		pass
-
-	def train():
-		pass
-
-	def testPolicy():
-		pass
-
-
-class ActorCritic(ContinuousRLAgent):
+class ActorCritic():
 
 	def __init__(self,env,discount_factor = 0.99,event_memory = deque(),mem_size = 2E3, max_eps = 1000,batch_size = 50):
 		self.max_eps = max_eps
@@ -371,9 +296,6 @@ class ActorCritic(ContinuousRLAgent):
 		op_vel = tf.clip_by_value(vel_dist.sample(),self.env.action_space.low[0],self.env.action_space.high[0])
 		op_ang = tf.clip_by_value(ang_dist.sample(),self.env.action_space.low[1],self.env.action_space.high[1])
 		return op_vel, op_ang
-
-
-
 
 
 	def update(self):
