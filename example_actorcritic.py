@@ -55,6 +55,8 @@ class ActorCritic:
 
         self.critic_state_input, self.critic_action_input, \
             self.critic_model = self.create_critic_model()
+
+
         _, _, self.target_critic_model = self.create_critic_model()
 
         self.critic_grads = tf.gradients(self.critic_model.output,
@@ -122,8 +124,7 @@ class ActorCritic:
             cur_state, action, reward, new_state, done = sample
             if not done:
                 target_action = self.target_actor_model.predict(new_state)
-                future_reward = self.target_critic_model.predict(
-                    [new_state, target_action])[0][0]
+                future_reward = 0 # implement the quadratic reward function
                 reward += self.gamma * future_reward
             self.critic_model.fit([cur_state, action], reward, verbose=0)
 
@@ -174,7 +175,7 @@ class ActorCritic:
 def main():
     sess = tf.Session()
     K.set_session(sess)
-    env = gym.make("Pendulum-v0")
+    env = gym.make("rlSeeker-v0")
     actor_critic = ActorCritic(env, sess)
 
     num_trials = 10000
@@ -198,4 +199,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-view rawactor_critic.py hosted with ❤ by GitHub

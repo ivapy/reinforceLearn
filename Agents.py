@@ -1,15 +1,25 @@
 from collections import deque
 import numpy as np
 import time
-from tensorflow import keras
 import tensorflow as tf
+from tensorflow.python import tf2
+if not tf2.enabled():
+  import tensorflow.compat.v2 as tf
+  tf.enable_v2_behavior()
+  assert tf2.enabled()
+
+import tensorflow_probability as tfp
+from tensorflow import keras
 from keras import backend as K
 from keras.models import Model
 from keras.layers import Layer, Dense, Input
 from keras.optimizers import Adam
 from keras import initializers
+import random
 
-
+"""
+Acting as an abstract class template for the minimum functionality needed in the implementation of a Discrete RL agent
+"""
 
 class DiscreteRLAgent():
 	def __init__(self,env,discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 0.999,mem_size = 1E3, max_eps = 1000):
@@ -43,6 +53,9 @@ class DiscreteRLAgent():
 	def testPolicy():
 		pass
 
+"""
+This class implements the DiscreteRLAgent Template from above as a Q-table based Q learning agent
+"""
 
 class QLearningAgent(DiscreteRLAgent):
 	def __init__(self,env,discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 1,mem_size = 1E3, max_eps = int(1E3)):
@@ -122,6 +135,105 @@ class QLearningAgent(DiscreteRLAgent):
 				if done:
 					observation = self.env.reset()
 				time.sleep(0.01)
+"""
+This class implements the Discrete RL agent as a deep Q-learning agent
+"""
+
+class DeepQAgent(DiscreteRLAgent):
+		def __init__(self,env,discount_factor = 0.99,event_memory = deque(),epsilon = 0.5,learning_rate = 0.001,exploration_decay = 1,mem_size = 1E3, max_eps = int(1E3)):
+		self.discount_factor = discount_factor
+		self.event_memory = event_memory
+		self.epsilon = epsilon
+		self.learning_rate = learning_rate
+		self.exploration_decay = exploration_decay
+		self.max_memory = mem_size
+		self.max_eps = max_eps
+		self.env = env
+		self.batch_size = 50
+		self.create_agent()
+
+
+	def update(self):
+		if len(event_memory) < self.batch_size:
+			return
+
+		minibatch = random.sample(self.event_memory, batch_size)
+
+        for state, next_state, reward, action, terminated in minibatch:
+
+            target = self.policy.predict(state)
+
+            if terminated:
+                target[0][action] = reward
+            else:
+                t = self.policy.predict(next_state)
+                target[0][action] = reward + self.gamma * np.argmax(t)
+
+            self.policy.fit(state, target, epochs=1, verbose=0)
+
+	def add_to_memory(self,curr_state,next_state,reward,action,done):
+		if len(self.event_memory) >= self.max_memory:
+			self.event_memory.popleft()
+		self.event_memory.append((curr_state,next_state,reward,action,done))
+
+	def create_agent(self):
+		state_input = Input(shape=self.env.observation_space.shape)
+		delta = Input(shape = [1])
+		h1 = Dense(24, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(state_input)
+		h2 = Dense(48, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h1)
+		h3 = Dense(24, activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h2)
+		output = Dense(self.env.action_space.shape[0], activation='relu', kernel_initializer='random_uniform', bias_initializer='zeros')(h3)
+		self.policy = Model(input = [state_input], output = [output])
+
+		return self.policy
+
+	def choose_action(self,state):
+		s = tuple(state)
+		options = self.policy.predict(state)
+		if np.random.uniform() > self.epsilon:
+			return np.argmax(options)
+		else:
+			self.epsilon *= self.exploration_decay
+			return np.random.choice(np.array(range(self.env.action_space.n)))
+
+
+
+	def train(self):
+		for i in range(self.max_eps):
+			observation = self.env.reset()
+			numIters = 0
+			while(not self.env.atGoal()):
+
+				#self.env.render()
+				action = self.choose_action(observation) # your agent here (this takes random actions)
+				oldState = self.env.curr_loc
+				observation, reward, done, info = self.env.step(action)
+				self.add_to_memory(oldState,observation,reward,action,done)
+				self.update(oldState,observation,reward,action,done)
+				numIters += 1
+				if done:
+
+					print("iter: " + str(i))
+					print action, reward, observation, self.env.goal_loc, done, numIters
+					self.env.reset()
+					numIters = 0
+
+	def testPolicy(self):
+		for _ in range(self.max_eps):
+			observation = self.env.reset()
+			while(not self.env.atGoal()):
+				self.env.render()
+				action = self.choose_action(observation) # your agent here (this takes random actions)
+				oldState = self.env.curr_loc
+				observation, reward, done, info = self.env.step(action)
+				self.add_to_memory()
+				self.update(oldState,observation,reward,action,done)
+				print action, observation, self.env.goal_loc, done, info
+				if done:
+					observation = self.env.reset()
+				time.sleep(0.01)
+
+
 
 class LinQuadLayer(layers.Layer):
 	def __init__(self):
@@ -191,6 +303,7 @@ class ActorCritic(ContinuousRLAgent):
 		self.actor = self.__create_actor()
 		self.alpha = 0.0001
 		self.beta = 0.0005
+		self.sess = tf.Session()
 
 	def __create_actor(self):
 		state_input = Input(shape=self.env.observation_space.shape)
@@ -209,8 +322,7 @@ class ActorCritic(ContinuousRLAgent):
 		action_placeholder = tf.placeholder(tf.float32)
 		delta_placeholder = tf.placeholder(tf.float32)
 		self.loss_actor = -tf.log(norm_dist.prob(action_placeholder) + 1e-5) * delta_placeholder
-		self.training_op_actor = tf.train.AdamOptimizer(
-			lr_actor, name='actor_optimizer').minimize(self.loss_actor)
+		self.training_op_actor = tf.train.AdamOptimizer(lr_actor, name='actor_optimizer').minimize(self.loss_actor)
 		return model, policy
 
 
@@ -244,7 +356,7 @@ class ActorCritic(ContinuousRLAgent):
 
 	def __train_actor(self, advantage, cur_state, next_state):
 
-		pass
+
 
 
 	def __log_loss(y_true,y_pred):
@@ -254,6 +366,8 @@ class ActorCritic(ContinuousRLAgent):
 
 
 	def train(self):
+		pass
+	def chooseAction():
 		pass
 
 	def update(self):
